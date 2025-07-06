@@ -13,7 +13,62 @@ pipeline {
         }
 
         stage('Install Dependencies') {
+            steps {apipeline {
+    agent any
+
+    environment {
+        APP_DIR = 'messaging_app'
+    }
+
+    stages {
+        stage('Clone Repository') {
             steps {
+                git credentialsId: 'your-github-creds-id', url: 'https://github.com/eskainah/alx-backend-python.git'
+                sh 'git branch'  // ✅ logs current branch
+            }
+        }
+
+        stage('Install Dependencies') {
+            steps {
+                // ✅ Explicitly use messaging_app/requirements.txt
+                sh 'pip3 install -r messaging_app/requirements.txt'
+            }
+        }
+
+        stage('Run Tests') {
+            steps {
+                // ✅ Run pytest inside messaging_app
+                sh 'pytest messaging_app/tests --junitxml=messaging_app/test-results/results.xml'
+            }
+        }
+
+        stage('Publish Test Report') {
+            steps {
+                // ✅ Reference the exact location of test results
+                junit 'messaging_app/test-results/results.xml'
+            }
+        }
+
+        stage('Build Docker Image') {
+            steps {
+                script {
+                    dockerImage = docker.build("yourdockerhubuser/messaging_app", "messaging_app")
+                }
+            }
+        }
+
+        stage('Push Docker Image') {
+            steps {
+                script {
+                    docker.withRegistry('https://index.docker.io/v1/', 'dockerhub-credentials-id') {
+                        dockerImage.push("latest")
+                    }
+                }
+            }
+        }
+    }
+}
+
                 dir("${APP_DIR}") {
                     sh 'pip3 install -r requirements.txt'
                 }
